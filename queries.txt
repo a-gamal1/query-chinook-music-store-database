@@ -1,0 +1,85 @@
+/* Query 1 */
+
+WITH artists_sales as
+	(SELECT ar.Name artist_name,
+			il.UnitPrice * il.Quantity sales_price
+	 FROM Artist ar
+	 JOIN Album al
+		ON ar.ArtistId = al.ArtistId
+	 JOIN Track tr
+		ON al.AlbumId = tr.AlbumId
+	 JOIN InvoiceLine il
+		ON tr.TrackId = il.TrackId)
+
+SELECT artists_sales.artist_name,
+		SUM(artists_sales.sales_price) total_sales
+FROM artists_sales
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 5
+
+/* Query 2 */
+
+SELECT (e.FirstName || " " || e.LastName) sales_rep_name,
+		SUM(i.total) total_sales
+FROM Employee e
+JOIN Customer c
+	ON e.EmployeeId = c.SupportRepId
+JOIN Invoice i
+	ON c.CustomerId = i.CustomerId
+GROUP BY 1
+ORDER BY 2 DESC
+
+/* Query 3 */
+
+WITH most_billing as
+	(SELECT i.BillingCountry country,
+			SUM(i.total)
+	 FROM Invoice i
+	 GROUP BY 1
+	 ORDER BY 2 DESC
+	 LIMIT 1),
+
+	 invoiceline_genres as
+	 (SELECT i.BillingCountry country,
+			 il.TrackId,
+			 g.name genre_name
+	  FROM Invoice i, most_billing
+	  JOIN InvoiceLine il
+		ON i.InvoiceId = il.InvoiceId
+	  JOIN Track tr
+		ON il.TrackId = tr.TrackId
+	  JOIN Genre g
+		ON tr.GenreId = g.GenreId
+	  WHERE i.BillingCountry = most_billing.country)
+
+SELECT genre_name,
+		COUNT(*)
+FROM invoiceline_genres
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 5		
+
+/* Query 4 */
+
+WITH average as
+	(SELECT AVG(tr.Milliseconds) avg_length
+	 FROM Track tr),
+
+	long_tracks as
+	(SELECT ar.Name artist_name,
+			tr.TrackId track_id,
+			tr.Milliseconds track_length
+	 FROM Track tr, average
+	 JOIN Album al
+		ON tr.AlbumId = al.AlbumId
+	 JOIN Artist ar
+		ON al.ArtistId = ar.ArtistId
+	 WHERE tr.Milliseconds > average.avg_length)
+
+SELECT long_tracks.artist_name,
+		COUNT(*)
+FROM long_tracks
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 5
